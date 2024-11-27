@@ -21,10 +21,23 @@ bool VideoCapture::open(const std::string &filename)
     av_dict_set(&options, "rtsp_transport", "tcp", 0);  //以tcp的方式打开,
     av_dict_set(&options, "stimeout", "5000000", 0);    //设置超时断开链接时间，单位us
     av_dict_set(&options, "max_delay", "500000", 0);    //设置最大时延
+
+     // 分配并初始化一个AVFormatContext
+    _fmt_ctx = avformat_alloc_context();
+    if (!_fmt_ctx) {
+        av_log(NULL, AV_LOG_ERROR, "Failed to allocate AVFormatContext\n");
+        return false;
+    }
+
+    // 设置非阻塞模式
+    _fmt_ctx->flags |= AVFMT_FLAG_NONBLOCK;
+
     int result = avformat_open_input(&_fmt_ctx, filename.c_str(), NULL, &options);
     if (result < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "Can't open file\n");
+        avformat_free_context(_fmt_ctx);
+        _fmt_ctx = nullptr;
         return false;
     }
 
@@ -32,6 +45,7 @@ bool VideoCapture::open(const std::string &filename)
     if (result < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "Can't get stream info\n");
+        avformat_close_input(&_fmt_ctx);
         return false;
     }
 
@@ -39,6 +53,7 @@ bool VideoCapture::open(const std::string &filename)
     if (_video_stream < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "Can't find video stream in input file\n");
+        avformat_close_input(&_fmt_ctx);
         return false;
     }
 
