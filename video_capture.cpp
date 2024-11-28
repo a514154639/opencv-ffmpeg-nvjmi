@@ -49,14 +49,6 @@ bool VideoCapture::open(const std::string &filename)
         return false;
     }
 
-    _video_stream = av_find_best_stream(_fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-    if (_video_stream < 0)
-    {
-        av_log(NULL, AV_LOG_ERROR, "Can't find video stream in input file\n");
-        avformat_close_input(&_fmt_ctx);
-        return false;
-    }
-
     for (int i = 0; i < _fmt_ctx->nb_streams; i++) {
         av_dump_format(_fmt_ctx, i, filename.c_str(), 0);
     }
@@ -119,49 +111,54 @@ bool VideoCapture::read(cv::Mat &image)
         av_log(NULL, AV_LOG_ERROR, "Cannot open file\n");
         return false;
     }
+    int ret = 0;
+    while (ret >= 0) {
+        ret = av_read_frame(_fmt_ctx, _pkt);
+        if (ret != 0) {
+            std::cout << "av_read_frame fail " << ret << std::endl;
+            av_packet_unref(_pkt);
+            _isOpened = false;
+            //break;
+            return false;
+        } else {
+            auto payload = _pkt->data;
+            auto payload_size = _pkt->size;
+            nvpacket.payload_size = payload_size;
+            nvpacket.payload = payload;
+            
+            if (payload != nullptr) {
+                ret = jmi::nvjmi_decoder_put_packet(jmi_ctx_, &nvpacket);
+                //std::cout << "nvjmi_decoder_put_packet " << ret << std::endl;
+                if(ret == jmi::NVJMI_ERROR_STOP) {
+                    av_log(NULL, AV_LOG_ERROR, "frameCallback: nvjmi decode error, frame callback EOF!");
+                    return false;
+                }
+                while (ret >= 0) {
+                    //jmi::nvFrameMeta nvframe_meta;
+                    ret = jmi::nvjmi_decoder_get_frame_meta(jmi_ctx_, &nvframe_meta);
+                    //std::cout << "nvjmi_decoder_get_frame_meta " << ret << std::endl;
+                    if (ret < 0)
+                    {
+                        av_packet_unref(_pkt);
+                        return false;
+                        //break;
+                    }
 
-    int ret = av_read_frame(_fmt_ctx, _pkt);
-    if (ret != 0) {
-        std::cout << "av_read_frame fail " << ret << std::endl;
-        av_packet_unref(_pkt);
-        return false;
+                    ret = jmi::nvjmi_decoder_retrieve_frame_data(jmi_ctx_, &nvframe_meta, (void *)_out_buffer); 
+                    //std::cout << "nvjmi_decoder_retrieve_frame_data " << ret << std::endl;
+                    //cv::Mat(nvframe_meta.height, nvframe_meta.width, CV_8UC3, _out_buffer).copyTo(image);   
+                    image = cv::Mat(nvframe_meta.height, nvframe_meta.width, CV_8UC3, _out_buffer);					
+                    av_packet_unref(_pkt);		
+                    return true;
+                    
+                }
+            }
+        }       
     }
-
-    auto payload = _pkt->data;
-    auto payload_size = _pkt->size;
-    nvpacket.payload_size = payload_size;
-    nvpacket.payload = payload;
     
-    if (payload == nullptr) {
-        av_packet_unref(_pkt);
-        return false;
-    }
-
-    ret = jmi::nvjmi_decoder_put_packet(jmi_ctx_, &nvpacket);
-    if(ret == jmi::NVJMI_ERROR_STOP) {
-        av_log(NULL, AV_LOG_ERROR, "frameCallback: nvjmi decode error, frame callback EOF!");
-        av_packet_unref(_pkt);
-        return false;
-    }
-
-    jmi::nvFrameMeta nvframe_meta;
-    ret = jmi::nvjmi_decoder_get_frame_meta(jmi_ctx_, &nvframe_meta);
-    if (ret < 0) {
-        av_packet_unref(_pkt);
-        return false;
-    }
-
-    ret = jmi::nvjmi_decoder_retrieve_frame_data(jmi_ctx_, &nvframe_meta, (void *)_out_buffer);
-    if (ret < 0) {
-        av_packet_unref(_pkt);
-        return false;
-    }
-
-    image = cv::Mat(nvframe_meta.height, nvframe_meta.width, CV_8UC3, _out_buffer);
-    av_packet_unref(_pkt);		
-    return true;
+    //av_packet_unref(_pkt);	
+    return false;
 }
-
 
 
 
@@ -306,14 +303,10 @@ void reConnect(int i){
     videos[i].open(url_map[i]);
     if(videos[i].isOpened()){
          std::cout<< "cam: "<< i <<" reconnected"<< std::endl;
-         videos[i].release();
          sleep_ms(5000);
-         videos[i].open(url_map[i]);
     }
     else{
           std::cout<< "cam: "<< i <<" reconnected fail"<< std::endl;
-          videos[i].release();
-          reConnect(i);
     }
 }
 
