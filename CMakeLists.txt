@@ -26,7 +26,6 @@ find_package(CUDA REQUIRED)
 include_directories(/usr/local/cuda-10.2/include)
 link_directories(/usr/local/cuda-10.2/lib64)
 
-set(CUDA_SOURCES ./rtsp_video_capture/nv12tobgr.cu)
 enable_language(CUDA)
 
 
