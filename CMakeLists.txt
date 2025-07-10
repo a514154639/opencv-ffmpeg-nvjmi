@@ -3,73 +3,76 @@ project(RTSPDecodeExample)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(nvmpi_libs_DIR /usr/local/lib)               ## nvmpi
-set(nvmpi_headers_DIR /usr/local/include)
-add_library(nvmpi SHARED IMPORTED )
-set_target_properties(nvmpi PROPERTIES IMPORTED_LOCATION ${nvmpi_libs_DIR}/libnvmpi.so )
 
-set(ffmpeg_libs_DIR /usr/local/lib)                         ## ffmpeg
-set(ffmpeg_headers_DIR /usr/local/include) 
+# set(ffmpeg_libs_DIR /usr/lib)                         ## ffmpeg
+# set(ffmpeg_headers_DIR /usr/include) 
 
+set(rga_libs_DIR /usr/lib/librga.so)                         ## rga
+set(rga_headers_DIR /usr/include/rga) 
 
-set(nvjmi_libs_DIR /usr/local/lib)               ## nvjmi
-set(nvjmi_headers_DIR /usr/local/include)
-add_library(nvjmi SHARED IMPORTED )
-set_target_properties(nvjmi PROPERTIES IMPORTED_LOCATION ${nvjmi_libs_DIR}/libnvjmi.so )
+# link_directories(
+#     mpp_libs
+# )
 
 find_package(OpenCV REQUIRED)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(CUDA REQUIRED)
-# cuda
-include_directories(/usr/local/cuda-10.2/include)
-link_directories(/usr/local/cuda-10.2/lib64)
+# include_directories(
+#     ${OpenCV_INCLUDE_DIRS}
+#     ${rga_headers_DIR}
+#     ${CMAKE_CURRENT_LIST_DIR}/mpp-develop/inc
+#     ${CMAKE_CURRENT_LIST_DIR}/mpp-develop/osal/inc
+#     ${CMAKE_CURRENT_LIST_DIR}/mpp-develop/utils
+#     ${CMAKE_CURRENT_LIST_DIR}/mpp-develop/mpp/inc
+#     ${CMAKE_CURRENT_LIST_DIR}/mpp-develop/mpp/base/inc
+# )
 
-enable_language(CUDA)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(AVCODEC REQUIRED libavcodec)
+pkg_search_module(AVFORMAT REQUIRED libavformat)
+pkg_search_module(AVUTIL REQUIRED libavutil)
+pkg_search_module(SWSCALE REQUIRED libswscale)
+pkg_search_module(AVFILTER REQUIRED libavfilter)
 
-
-add_library( avcodec SHARED IMPORTED )
- 
-set_target_properties( avcodec PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libavcodec.so )
- 
-add_library( avfilter SHARED IMPORTED )
-set_target_properties( avfilter PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libavfilter.so )
- 
-add_library( swresample SHARED IMPORTED )
-set_target_properties( swresample PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libswresample.so )
- 
-add_library( swscale SHARED IMPORTED )
-set_target_properties( swscale PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libswscale.so )
- 
-add_library( avformat SHARED IMPORTED )
-set_target_properties( avformat PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libavformat.so )
- 
-add_library( avutil SHARED IMPORTED )
-set_target_properties( avutil PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libavutil.so ) 
+include_directories(${AVCODEC_INCLUDE_DIRS})
+link_directories(${AVCODEC_LIBRARY_DIRS})
 
 
-cuda_add_library(RtspClientLib SHARED  video_capture.cpp)
+add_library(RtspClientLib SHARED  video_capture.cpp)
 
-cuda_add_executable(RTSPDecode
+add_executable(RTSPDecode
+    #${CMAKE_CURRENT_LIST_DIR}/media/mpi_dec.cpp
     video_capture.h
     video_capture.cpp
     main.cpp
-    ${CUDA_SOURCES}
 )
 
-target_include_directories(RTSPDecode PRIVATE ${nvmpi_headers_DIR} ${nvjmi_headers_DIR} ${ffmpeg_headers_DIR} )
+#target_include_directories(RTSPDecode PRIVATE ${ffmpeg_headers_DIR} )
 
 target_link_libraries(RTSPDecode      
     ${OpenCV_LIBS}
-    ${CUDA_LIBRARIES} nppicc nppc  nppisu nppig cudart 
+    #${rga_libs_DIR}
+    ${AVCODEC_LIBRARIES}
+    ${AVFORMAT_LIBRARIES}
+    ${AVUTIL_LIBRARIES}
+    ${SWSCALE_LIBRARIES}
+     ${AVFILTER_LIBRARIES}
+    #rockchip_mpp
+    # utils # 在mpp_libs下，MPP工具库
+    # mk_api # 在mpp_libs下，ZLMediaKit API库
     -pthread                                       
-    avformat avcodec nvjmi  nvmpi  avfilter  avutil avdevice swscale swresample
 )
 
 target_link_libraries(RtspClientLib     
     ${OpenCV_LIBS}
-    ${CUDA_LIBRARIES} nppicc nppc  nppisu nppig cudart 
+    #${rga_libs_DIR}
+    ${AVCODEC_LIBRARIES}
+    ${AVFORMAT_LIBRARIES}
+    ${AVUTIL_LIBRARIES}
+    ${SWSCALE_LIBRARIES}
+     ${AVFILTER_LIBRARIES}
+    #rockchip_mpp
+    # utils # 在mpp_libs下，MPP工具库
+    # mk_api # 在mpp_libs下，ZLMediaKit API库
     -pthread                                       
-    avformat avcodec nvjmi  nvmpi  avfilter  avutil avdevice swscale swresample 
 )
