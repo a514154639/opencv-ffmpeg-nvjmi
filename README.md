@@ -6,4 +6,6 @@ ffmpeg调用jetson/rk3588 mpp硬解码，重写了VideoCapture的open与read函�
 
 仓库中的so基于jepack 4.6.2
 
+rk3588-mpp在opencv-mpp分支
+
 rk3588需要编译mpp与ffmpeg，参考仓库https://github.com/nyanmisaka/ffmpeg-rockchip
