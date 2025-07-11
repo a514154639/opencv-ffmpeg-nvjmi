@@ -331,79 +331,7 @@ bool VideoCapture::read_bac(cv::Mat &image)
 
 
 
-bool VideoCapture::read_old(cv::Mat &image)
-{
-    if (!_isOpened)
-    {
-        av_log(NULL, AV_LOG_ERROR, "Cannot open file\n");
-        return false;
-    }
 
-    int i = 0;
-    int result = 0;
-    while (result >= 0)
-    {
-        result = av_read_frame(_fmt_ctx, _pkt);
-
-        if (result >= 0 && _pkt->stream_index != _video_stream)
-        {
-            av_packet_unref(_pkt);
-            continue;
-        }
-
-        if (result < 0)
-            result = avcodec_send_packet(_ctx, NULL);
-        else
-        {
-            if (_pkt->pts == AV_NOPTS_VALUE)
-                _pkt->pts = _pkt->dts = i;
-            result = avcodec_send_packet(_ctx, _pkt);
-
-        }
-        av_packet_unref(_pkt);
-
-        if (result < 0)
-        {
-            av_log(NULL, AV_LOG_ERROR, "Error submitting a packet for decoding\n");
-            return false;
-        }
-
-        while (result >= 0)
-        {
-            result = avcodec_receive_frame(_ctx, _fr);
-            if (result == AVERROR_EOF)
-            {
-                av_log(NULL, AV_LOG_ERROR, "End of file\n");
-                return false;
-            }
-            if (result == AVERROR(EAGAIN))
-            {
-                result = 0;
-                break;
-            }
-            if (result < 0)
-            {
-                av_log(NULL, AV_LOG_ERROR, "Error decoding frame\n");
-                return false;
-            }
-
-            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();    
-            //std::cout << "frame type: " << _fr->format << std::endl;
-            sws_scale(_img_convert_ctx, (const uint8_t *const *)_fr->data, _fr->linesize, 0, _ctx->height, _frBGR->data, _frBGR->linesize); //YUV to RGB
-            //AVFrame2Img_gpu(_fr, _out_buffer);
-            auto now = std::chrono::system_clock::now();
-            std::chrono::duration<double,  std::milli> elapsed = now - start;
-            //std::cout << "convert time: " << elapsed.count() << std::endl;
-
-            //cv::Mat(_ctx->height, _ctx->width, CV_8UC3, _out_buffer).copyTo(image);
-            image = cv::Mat(_ctx->height, _ctx->width, CV_8UC3, _out_buffer);
-            av_frame_unref(_fr);
-            return true;
-        }
-        i++;
-    }
-    return true;
-}
 
 VideoCapture &VideoCapture::operator>>(cv::Mat &image)
 {
@@ -425,51 +353,7 @@ void VideoCapture::release()
 }
 
 
-// void VideoCapture::reconnect(int i) {
-//     // 关闭并释放当前连接资源
-//     if (_isOpened) {
-//         avformat_close_input(&_fmt_ctx);
-//         if (_pkt) {
-//             av_packet_free(&_pkt);
-//             _pkt = nullptr;
-//         }
-//         if (_out_buffer) {
-//             av_free(_out_buffer);
-//             _out_buffer = nullptr;
-//         }
-//         if (jmi_ctx_) {
-//             jmi::nvjmi_destroy_decoder(jmi_ctx_);
-//             jmi_ctx_ = nullptr;
-//         }
-//         _isOpened = false;
-//     }
-    
-//     std::cout << "Attempting to reconnect... Attempt " << std::endl;
-//     if (open(url_map[i])) { // 假设_filename是类中存储的文件名
-//         std::cout << "Reconnection successful." << std::endl;
-//         return;
-//     } else {
-//         std::cout << "Reconnection failed. Retrying..." << std::endl;
-//         // 释放由于失败的连接尝试可能分配的资源
-//         avformat_close_input(&_fmt_ctx);
-//         if (_pkt) {
-//             av_packet_free(&_pkt);
-//             _pkt = nullptr;
-//         }
-//         if (_out_buffer) {
-//             av_free(_out_buffer);
-//             _out_buffer = nullptr;
-//         }
-//         if (jmi_ctx_) {
-//             jmi::nvjmi_destroy_decoder(jmi_ctx_);
-//             jmi_ctx_ = nullptr;
-//         }
-//         // 等待一段时间再重试
-//         std::this_thread::sleep_for(std::chrono::seconds(1));
-//     }
 
-//     std::cerr << "Failed to reconnect after " << retries << " attempts." << std::endl;
-// }
 
 
 
@@ -532,42 +416,20 @@ void reConnect(int i){
 }
 
 
-// int Getbyte(int i, cv::Mat **returnframe)
-// {
-//   cv::Mat frame;
-//   if (videos[i].isOpened()) {
-//       videos[i].read(frame);
-//       if (frame.empty()) {
-//           std::cout << "Input frame is empty" << std::endl;    
-//           return 0;  
-//       } 
-//       else {
-//         if (*returnframe != nullptr) {
-//             delete *returnframe;  // 释放之前分配的内存
-//         }
-//            *returnframe =  new cv::Mat(frame);
-//             return 1;  
-//       }
-//   } else {
-//       std::cout << "cam " << i << " link fail" <<  std::endl;
-//       videos[i].release();
-//       reConnect(i);
-//       return 0;
 
-//   }
-// }
 
 int Getbyte( int i,int& width, int& height, int& size, unsigned char*& data) {
     if (!videos[i].isOpened()) {
         std::cout << "cam " << i << " link fail" << std::endl;
-        videos[i].release();
-        reConnect(i);
+        //videos[i].release();
+        //reConnect(i);
         return 0;
     }
 
     cv::Mat frame;
     if (!videos[i].read(frame) || frame.empty()) {
         //std::cout << "Input frame is empty" << std::endl;    
+	videos[i].release();
         return 0;  
     }
     width = frame.cols;
@@ -617,24 +479,6 @@ int Getbyte( int i,int& width, int& height, int& size, unsigned char*& data) {
 
 
 
-// int Getbyte( int i, cv::Mat **returnframe) {
-//     if (!videos[i].isOpened()) {
-//         std::cout << "cam " << i << " link fail" << std::endl;
-//         videos[i].release();
-//         reConnect(i);
-//         return 0;
-//     }
 
-//     cv::Mat frame;
-//     if (!videos[i].read(frame) || frame.empty()) {
-//         std::cout << "Input frame is empty" << std::endl;    
-//         return 0;  
-//     }
-//     if (*returnframe != nullptr) {
-//         delete *returnframe;  // 释放之前分配的内存
-//     }
-//     *returnframe = new cv::Mat(frame);  // 分配新内存并复制数据
-//     return 1;
-// }
 
 
