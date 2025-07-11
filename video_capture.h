@@ -36,7 +36,6 @@ public:
     VideoCapture(){};
     bool open(const std::string &filename);
     bool read(cv::Mat &image);
-    bool read_old(cv::Mat &image);
     bool read_bac(cv::Mat &image);
     void release();
     void reconnect(int i); 
