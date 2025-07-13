@@ -1,5 +1,4 @@
 #include "video_capture.h"
-#include "nv12tobgr.h"
 #include <iostream>
 
 VideoCapture::VideoCapture(const std::string &filename)
@@ -30,95 +29,6 @@ std::string getcurrent_time(){
     return filename;
 }
 
-
-// bool VideoCapture::open(const std::string &filename)
-// {
-//     AVDictionary *options = NULL;
-//     av_dict_set(&options, "buffer_size", "1024000", 0); //设置缓存大小,1080p可将值跳到最大
-//     av_dict_set(&options, "rtsp_transport", "tcp", 0);  //以tcp的方式打开,
-//     av_dict_set(&options, "stimeout", "5000000", 0);    //设置超时断开链接时间，单位us
-//     av_dict_set(&options, "max_delay", "500000", 0);    //设置最大时延
-//     int result = avformat_open_input(&_fmt_ctx, filename.c_str(), NULL, &options);
-//     if (result < 0)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't open file\n");
-//         return false;
-//     }
-
-//     result = avformat_find_stream_info(_fmt_ctx, NULL);
-//     if (result < 0)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't get stream info\n");
-//         return false;
-//     }
-
-//     _video_stream = av_find_best_stream(_fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-//     if (_video_stream < 0)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't find video stream in input file\n");
-//         return false;
-//     }
-
-//     _origin_par = _fmt_ctx->streams[_video_stream]->codecpar;
-//     //_codec = avcodec_find_decoder(_origin_par->codec_id);hevc_nvv4l2dec
-//     _codec = avcodec_find_decoder_by_name("h264_nvmpi");
-//     if (!_codec)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't find decoder\n");
-//         return false;
-//     }
-
-//     _ctx = avcodec_alloc_context3(_codec);
-//     if (!_ctx)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't allocate decoder context\n");
-//         return false;
-//     }
-
-//     result = avcodec_parameters_to_context(_ctx, _origin_par);
-//     //_ctx->pix_fmt =  AV_PIX_FMT_NV12; /*AV_PIX_FMT_NV12*/
-//     if (result)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't copy decoder context\n");
-//         return false;
-//     }
-
-//     result = avcodec_open2(_ctx, _codec, NULL);
-//     if (result < 0)
-//     {
-//         av_log(_ctx, AV_LOG_ERROR, "Can't open decoder\n");
-//         return false;
-//     }
-
-//     _fr = av_frame_alloc();
-//     if (!_fr)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't allocate frame\n");
-//         return false;
-//     }
-
-//     _frBGR = av_frame_alloc();
-//     if (!_frBGR)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Can't allocate frame\n");
-//         return false;
-//     }
-
-//     _size = avpicture_get_size(AV_PIX_FMT_BGR24, _ctx->width, _ctx->height);
-//     _out_buffer = (uint8_t *)av_malloc(_size);
-//     avpicture_fill((AVPicture *)_frBGR, _out_buffer, AV_PIX_FMT_BGR24, _ctx->width, _ctx->height);
-//     //out_data = new uchar[_ctx->width * _ctx->height * 3]; 
-//     _img_convert_ctx = sws_getContext(_ctx->width, _ctx->height, _ctx->pix_fmt, _ctx->width, _ctx->height, AV_PIX_FMT_BGR24, SWS_BICUBIC, NULL, NULL, NULL);
-
-//     _pkt = av_packet_alloc();
-//     if (!_pkt)
-//     {
-//         av_log(NULL, AV_LOG_ERROR, "Cannot allocate packet\n");
-//         return false;
-//     }
-//     _isOpened = true;
-//     return true;
-// }
 
 
 bool VideoCapture::open(const std::string &filename)
