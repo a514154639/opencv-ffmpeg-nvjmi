@@ -309,19 +309,19 @@ bool isConnect(int i){
 
 void reConnect(int i){
     std::cout<< "cam: "<< i <<" reconnecting..."<< std::endl;
-    //videos[i].release();
     sleep_ms(10000);
     videos[i].open(url_map[i]);
     if(videos[i].isOpened()){
          std::cout<< "cam: "<< i <<" reconnected"<< std::endl;
-         //videos[i].release();
          sleep_ms(5000);
-         //videos[i].open(url_map[i]);
+	    return;
+
     }
     else{
           std::cout<< "cam: "<< i <<" reconnected fail"<< std::endl;
           //videos[i].release();
           //reConnect(i);
+	    return;
     }
 }
 
