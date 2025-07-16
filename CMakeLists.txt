@@ -16,13 +16,6 @@ find_package(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-find_package(CUDA REQUIRED)
-# cuda
-include_directories(/usr/local/cuda-10.2/include)
-link_directories(/usr/local/cuda-10.2/lib64)
-
-#enable_language(CUDA)
-
 
 add_library( avcodec SHARED IMPORTED )
  
@@ -41,13 +34,11 @@ set_target_properties( avformat PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/
 add_library( avutil SHARED IMPORTED )
 set_target_properties( avutil PROPERTIES IMPORTED_LOCATION ${ffmpeg_libs_DIR}/libavutil.so ) 
 
-add_library(RtspClientLib SHARED  ./rtsp_video_capture/video_capture.cpp)
+add_library(RtspClientLib SHARED  video_capture.cpp)
 
 add_executable(RTSPDecode
-    ./rtsp_video_capture/video_capture.h
-    ./rtsp_video_capture/video_capture.cpp
-    ./rtsp_video_record/video_recoder.h
-    ./rtsp_video_record/video_recoder.cpp
+    video_capture.h
+    video_capture.cpp
     main.cpp
 )
 
